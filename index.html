@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070914" />
+    <meta
+      name="description"
+      content="Explore any GitHub user's starred repositories as an animated cloud of topics."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Stars Visualizer</title>
+  </head>
+  <body data-view="landing" data-panel="closed">
+    <canvas id="starfield" class="starfield" aria-hidden="true"></canvas>
+    <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+
+    <header class="topbar">
+      <a class="brand" href="#/">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <defs>
+            <linearGradient id="brand-gradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#c4b5fd" />
+              <stop offset="0.5" stop-color="#60a5fa" />
+              <stop offset="1" stop-color="#f472b6" />
+            </linearGradient>
+          </defs>
+          <path
+            fill="url(#brand-gradient)"
+            d="M12 1.5 14 9.6 22.5 12 14 14.4 12 22.5 10 14.4 1.5 12 10 9.6Z"
+          />
+        </svg>
+        <span>Stars Visualizer</span>
+      </a>
+
+      <form class="user-form compact" id="topbar-form" novalidate>
+        <span class="user-form-prefix" aria-hidden="true">@</span>
+        <input
+          name="user"
+          type="text"
+          placeholder="GitHub username"
+          aria-label="GitHub username"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+        />
+        <button type="submit" aria-label="Visualize stars">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </button>
+      </form>
+
+      <button class="icon-button" id="token-button" type="button" aria-label="GitHub token settings" title="GitHub token">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
+          <path d="m21 2-9.6 9.6" />
+          <circle cx="7.5" cy="15.5" r="5.5" />
+        </svg>
+      </button>
+    </header>
+
+    <main>
+      <section class="hero" id="hero">
+        <div class="hero-words" aria-hidden="true">
+          <span style="--x: 7%; --y: 20%; --size: 30px; --color: #c4b5fd; --delay: -1s">react</span>
+          <span style="--x: 3%; --y: 42%; --size: 20px; --color: #6ee7b7; --delay: -4s">self-hosted</span>
+          <span style="--x: 5%; --y: 64%; --size: 38px; --color: #fb923c; --delay: -2s">rust</span>
+          <span style="--x: 13%; --y: 84%; --size: 22px; --color: #60a5fa; --delay: -6s">kubernetes</span>
+          <span style="--x: 30%; --y: 9%; --size: 18px; --color: #fde68a; --delay: -3s">neovim</span>
+          <span style="--x: 62%; --y: 7%; --size: 24px; --color: #f9a8d4; --delay: -5s">machine-learning</span>
+          <span style="--x: 84%; --y: 18%; --size: 34px; --color: #60a5fa; --delay: -2.5s">cli</span>
+          <span style="--x: 87%; --y: 40%; --size: 20px; --color: #fde68a; --delay: -7s">typescript</span>
+          <span style="--x: 88%; --y: 60%; --size: 28px; --color: #6ee7b7; --delay: -1.5s">llm</span>
+          <span style="--x: 74%; --y: 80%; --size: 36px; --color: #c4b5fd; --delay: -3.5s">awesome</span>
+          <span style="--x: 55%; --y: 91%; --size: 18px; --color: #f87171; --delay: -6.5s">graphql</span>
+          <span style="--x: 33%; --y: 92%; --size: 24px; --color: #e2e8f0; --delay: -4.5s">python</span>
+        </div>
+
+        <p class="eyebrow">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 1.5 14 9.6 22.5 12 14 14.4 12 22.5 10 14.4 1.5 12 10 9.6Z" />
+          </svg>
+          GitHub stars, as a constellation
+        </p>
+        <h1>See what your <span class="gradient-text">stars</span> are made of</h1>
+        <p class="lede">
+          Enter a GitHub username. Every repository they starred is grouped by topic and drawn as a living cloud. Click
+          a topic to dive in.
+        </p>
+
+        <form class="user-form large" id="hero-form" novalidate>
+          <span class="user-form-prefix" aria-hidden="true">@</span>
+          <input
+            name="user"
+            type="text"
+            placeholder="GitHub username"
+            aria-label="GitHub username"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+          />
+          <button type="submit">
+            <span>Visualize</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </button>
+        </form>
+
+        <p class="examples">
+          Or try
+          <a href="#/addyosmani">addyosmani</a>
+          <a href="#/gaearon">gaearon</a>
+          <a href="#/mitchellh">mitchellh</a>
+        </p>
+      </section>
+
+      <section class="status" id="loading" aria-live="polite">
+        <div class="orbit" aria-hidden="true">
+          <i></i><i></i><i></i>
+          <svg viewBox="0 0 24 24"><path d="M12 1.5 14 9.6 22.5 12 14 14.4 12 22.5 10 14.4 1.5 12 10 9.6Z" /></svg>
+        </div>
+        <h2 id="loading-title">Collecting stars</h2>
+        <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+        <p id="loading-detail">Contacting GitHub…</p>
+      </section>
+
+      <section class="status" id="error" role="alert">
+        <div class="error-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.5" /><circle cx="12" cy="12" r="9.5" /></svg>
+        </div>
+        <h2 id="error-title">Something went wrong</h2>
+        <p id="error-detail"></p>
+        <div class="actions">
+          <button class="button" id="retry-button" type="button">Try again</button>
+          <button class="button ghost" id="error-token-button" type="button">Add a token</button>
+        </div>
+      </section>
+
+      <section class="explore" id="explore">
+        <div class="stage">
+          <div class="stage-head">
+            <img class="avatar" id="avatar" alt="" width="48" height="48" />
+            <div class="who">
+              <a id="profile-link" target="_blank" rel="noopener noreferrer"></a>
+              <p id="summary"></p>
+            </div>
+            <div class="freshness">
+              <span id="updated"></span>
+              <button class="icon-button" id="refresh-button" type="button" aria-label="Refresh stars" title="Refresh">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M8 16H3v5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <p class="notice" id="notice" hidden>
+            <span id="notice-text"></span>
+            <button class="link-button" id="notice-token-button" type="button">Add a token</button>
+          </p>
+
+          <div class="toolbar">
+            <label class="search">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              <input id="topic-search" type="search" placeholder="Search topics" aria-label="Search topics" autocomplete="off" spellcheck="false" />
+            </label>
+            <div class="chips" id="active-filters" aria-label="Active filters"></div>
+          </div>
+
+          <div class="cloud-wrap">
+            <div class="cloud" id="cloud" role="group" aria-label="Topic cloud"></div>
+            <p class="cloud-empty" id="cloud-empty" hidden></p>
+          </div>
+          <p class="cloud-hint" id="cloud-hint"></p>
+
+          <div class="languages" id="languages" hidden>
+            <div class="language-bar" id="language-bar"></div>
+            <div class="language-legend" id="language-legend"></div>
+          </div>
+        </div>
+
+        <aside class="panel" id="panel" aria-label="Matching repositories">
+          <div class="panel-head">
+            <h2 id="panel-title"></h2>
+            <label class="sort">
+              <span class="visually-hidden">Sort repositories</span>
+              <select id="sort">
+                <option value="starred">Recently starred</option>
+                <option value="stars">Most stars</option>
+                <option value="name">Name</option>
+              </select>
+            </label>
+            <button class="icon-button" id="panel-close" type="button" aria-label="Clear filters" title="Clear filters">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          </div>
+          <p class="panel-empty" id="panel-empty" hidden>No repository matches these filters.</p>
+          <ol class="repo-list" id="repo-list"></ol>
+        </aside>
+      </section>
+    </main>
+
+    <dialog class="dialog" id="token-dialog" aria-labelledby="token-title">
+      <form method="dialog" id="token-form">
+        <h2 id="token-title">GitHub token</h2>
+        <p>
+          Without a token, GitHub allows 60 requests per hour, enough for about 6,000 stars. A
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">personal access token</a>
+          with no permissions raises that to 5,000 requests.
+        </p>
+        <p>The token stays in this browser and is only ever sent to api.github.com.</p>
+        <label class="field">
+          <span>Personal access token</span>
+          <input id="token-input" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false" />
+        </label>
+        <div class="actions">
+          <button class="button ghost" id="token-remove" type="button">Remove</button>
+          <button class="button ghost" id="token-cancel" type="button">Cancel</button>
+          <button class="button" type="submit" value="save">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
