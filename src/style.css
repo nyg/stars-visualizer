@@ -141,8 +141,30 @@ svg {
   flex: none;
 }
 
-.brand {
+.topbar-start {
   justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.source-link {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--faint);
+  transition: color 0.2s, background 0.2s;
+}
+
+.source-link:hover {
+  background: var(--surface-strong);
+  color: var(--text);
+}
+
+.brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -1487,6 +1509,10 @@ body[data-panel='open'] .panel {
 
   .account-button[data-mode='sign-in'] {
     padding: 0;
+  }
+
+  .topbar-start {
+    gap: 2px;
   }
 
   .freshness span {
