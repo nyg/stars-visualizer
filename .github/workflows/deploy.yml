@@ -26,6 +26,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        env:
+          VITE_GITHUB_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
+          VITE_TOKEN_EXCHANGE_URL: ${{ vars.TOKEN_EXCHANGE_URL }}
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
