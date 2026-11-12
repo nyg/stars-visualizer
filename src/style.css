@@ -164,8 +164,55 @@ svg {
   scale: 1.15;
 }
 
-.topbar .icon-button {
+.account-button {
   justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 500 0.92rem var(--font);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.account-button:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-strong);
+  color: var(--text);
+}
+
+.account-button > * {
+  display: none;
+}
+
+.account-button[data-mode='key'] .icon-key,
+.account-button[data-mode='sign-in'] .icon-github,
+.account-button[data-mode='sign-in'] span,
+.account-button[data-mode='avatar'] img {
+  display: block;
+}
+
+.account-button[data-mode='sign-in'] {
+  padding: 0 16px 0 12px;
+  color: var(--text);
+}
+
+.account-button[data-mode='avatar'] {
+  border-color: rgba(196, 181, 253, 0.55);
+}
+
+.icon-github {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 .icon-button {
@@ -189,6 +236,7 @@ svg {
 }
 
 .icon-button svg,
+.icon-key,
 .search svg,
 .chip svg,
 .error-mark svg,
@@ -1288,8 +1336,105 @@ body[data-panel='open'] .panel {
   margin-top: 24px;
 }
 
-.dialog #token-remove {
-  margin-right: auto;
+.dialog h2 {
+  padding-right: 44px;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 34px;
+  height: 34px;
+}
+
+.button.github {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 48px;
+  margin-top: 22px;
+  background: #f1f3fb;
+  font-size: 1rem;
+}
+
+.button.github svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.dialog .fine-print {
+  color: var(--faint);
+  font-size: 0.82rem;
+}
+
+.dialog .divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  color: var(--faint);
+  font-size: 0.82rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.account-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.account-card img {
+  flex: none;
+  border-radius: 50%;
+}
+
+.account-card div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.account-card strong {
+  font-weight: 600;
+}
+
+.account-card span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  z-index: 5;
+  translate: -50% 0;
+  max-width: calc(100vw - 32px);
+  padding: 12px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: rgba(16, 19, 40, 0.94);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  color: var(--text);
+  font-size: 0.92rem;
+  animation: toast-in 0.5s var(--ease-out) both;
 }
 
 @media (min-width: 960px) {
@@ -1335,8 +1480,13 @@ body[data-panel='open'] .panel {
     padding: 0 16px;
   }
 
-  .brand span {
+  .brand span,
+  .account-button[data-mode='sign-in'] span {
     display: none;
+  }
+
+  .account-button[data-mode='sign-in'] {
+    padding: 0;
   }
 
   .freshness span {
@@ -1440,6 +1590,13 @@ body[data-panel='open'] .panel {
   from {
     opacity: 0;
     translate: 36px 0;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: -50% 16px;
   }
 }
 

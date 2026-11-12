@@ -1,4 +1,4 @@
-import { create } from './dom'
+import { create, sizedAvatar } from './dom'
 import { languageColor } from './language-colors'
 import { formatCount, type StarredRepo } from './model'
 
@@ -70,7 +70,7 @@ export class RepoList {
     link.rel = 'noopener noreferrer'
 
     const avatar = create('img', 'repo-avatar')
-    avatar.src = `${repo.avatarUrl}${repo.avatarUrl.includes('?') ? '&' : '?'}s=56`
+    avatar.src = sizedAvatar(repo.avatarUrl, 56)
     avatar.alt = ''
     avatar.width = 28
     avatar.height = 28

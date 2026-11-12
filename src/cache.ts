@@ -1,7 +1,9 @@
+import type { Viewer } from './auth'
 import type { StarsResult } from './github'
 
 const RESULT_PREFIX = 'stars-visualizer:v1:stars:'
 const TOKEN_KEY = 'stars-visualizer:v1:token'
+const VIEWER_KEY = 'stars-visualizer:v1:viewer'
 const TIME_TO_LIVE_MS = 12 * 60 * 60 * 1000
 
 export function loadCached(user: string, now = Date.now()): StarsResult | null {
@@ -41,6 +43,24 @@ export function saveToken(token: string | null): void {
   try {
     if (token) localStorage.setItem(TOKEN_KEY, token)
     else localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    return
+  }
+}
+
+export function loadViewer(): Viewer | null {
+  try {
+    const raw = localStorage.getItem(VIEWER_KEY)
+    return raw ? (JSON.parse(raw) as Viewer) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveViewer(viewer: Viewer | null): void {
+  try {
+    if (viewer) localStorage.setItem(VIEWER_KEY, JSON.stringify(viewer))
+    else localStorage.removeItem(VIEWER_KEY)
   } catch {
     return
   }

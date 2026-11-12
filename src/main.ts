@@ -1,8 +1,21 @@
 import '@fontsource-variable/outfit'
 import './style.css'
-import { loadCached, loadToken, saveCached, saveToken } from './cache'
+import {
+  buildAuthorizeUrl,
+  codeChallenge,
+  exchangeCode,
+  fetchViewer,
+  parseCallback,
+  randomToken,
+  readAuthConfig,
+  savePending,
+  SignInError,
+  takePending,
+  type Viewer,
+} from './auth'
+import { loadCached, loadToken, loadViewer, saveCached, saveToken, saveViewer } from './cache'
 import { CLOUD_FONT, CloudView } from './cloud-view'
-import { byId, create } from './dom'
+import { byId, create, sizedAvatar } from './dom'
 import { fetchStars, GitHubError, isValidUsername, type FetchProgress, type StarsResult } from './github'
 import { LanguageBar } from './language-bar'
 import { languageColor } from './language-colors'
@@ -34,10 +47,12 @@ interface ErrorCopy {
 
 const FONT_TIMEOUT_MS = 1500
 const SEARCH_DEBOUNCE_MS = 120
+const TOAST_DURATION_MS = 5000
 const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>'
 const narrowLayout = matchMedia('(max-width: 959px)')
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
 const clockTime = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
+const authConfig = readAuthConfig(import.meta.env)
 
 const loadingTitle = byId('loading-title')
 const loadingDetail = byId('loading-detail')
@@ -59,8 +74,18 @@ const panel = byId('panel')
 const panelTitle = byId('panel-title')
 const panelEmpty = byId('panel-empty')
 const sortSelect = byId<HTMLSelectElement>('sort')
+const noticeTokenButton = byId('notice-token-button')
+const accountButton = byId('token-button')
+const accountAvatar = byId<HTMLImageElement>('account-avatar')
 const tokenDialog = byId<HTMLDialogElement>('token-dialog')
 const tokenInput = byId<HTMLInputElement>('token-input')
+const signedInPanel = byId('signed-in-panel')
+const signedOutPanel = byId('signed-out-panel')
+const accountName = byId('account-name')
+const dialogAvatar = byId<HTMLImageElement>('dialog-avatar')
+const myStarsButton = byId('my-stars-button')
+const myStarsLink = byId<HTMLAnchorElement>('my-stars-link')
+const toast = byId('toast')
 const userInputs = [byId<HTMLFormElement>('hero-form'), byId<HTMLFormElement>('topbar-form')].map(bindUserForm)
 
 let result: StarsResult | null = null
@@ -74,6 +99,9 @@ let renderedFilterKey = ''
 let renderedPanelKey = ''
 let topicTotal = 0
 let searchTimer = 0
+let toastTimer = 0
+let viewer: Viewer | null = loadViewer()
+let forceNextLoad = false
 
 const cloud = new CloudView(byId('cloud'), { onSelect: selectTopicFromCloud, onRender: renderCloudStatus })
 const repoList = new RepoList(byId('repo-list'), (topic) => navigate(currentUser, toggleTopic(filter, topic)))
@@ -104,7 +132,9 @@ function applyRoute(): void {
     renderExplore()
     return
   }
-  void loadUser(route.user)
+  const force = forceNextLoad
+  forceNextLoad = false
+  void loadUser(route.user, force)
 }
 
 function showLanding(): void {
@@ -192,14 +222,14 @@ function describeError(error: unknown, user: string): ErrorCopy {
           error.resetAt
             ? `Requests are allowed again at ${clockTime.format(error.resetAt)}.`
             : 'Requests are allowed again within the hour.'
-        } Add a token to keep going right away.`,
-        tokenAction: 'Add a token',
+        } ${describeAccessAction()} to keep going right away.`,
+        tokenAction: describeAccessAction(),
       }
     case 'unauthorized':
       return {
-        title: 'GitHub rejected the token',
-        detail: 'Update or remove it, then try again.',
-        tokenAction: 'Update token',
+        title: 'GitHub rejected the saved access',
+        detail: 'Sign out, then sign in again or paste a new token.',
+        tokenAction: 'Manage access',
       }
     case 'network':
       return { title: 'GitHub is out of reach', detail: 'Check your connection and try again.', tokenAction: null }
@@ -219,6 +249,7 @@ function showResult(next: StarsResult): void {
   profileLink.href = `https://github.com/${encodeURIComponent(next.user)}?tab=stars`
   updated.textContent = describeAge(next.fetchedAt)
   notice.hidden = !next.partial
+  noticeTokenButton.textContent = describeAccessAction()
   noticeText.textContent = `Showing the ${formatNumber(next.repos.length)} most recent stars. GitHub's rate limit stopped the rest.`
 
   setView('ready')
@@ -385,18 +416,138 @@ function extractUsername(raw: string): string {
   return (fromUrl?.[1] ?? trimmed).replace(/^@/, '')
 }
 
-function openTokenDialog(): void {
-  tokenInput.value = loadToken() ?? ''
+function describeAccessAction(): string {
+  return authConfig ? 'Sign in' : 'Add a token'
+}
+
+function renderAccount(): void {
+  const signedIn = loadToken() !== null
+  const label = viewer
+    ? `Signed in as @${viewer.login}`
+    : signedIn
+      ? 'GitHub access'
+      : authConfig
+        ? 'Sign in with GitHub'
+        : 'GitHub token'
+
+  accountButton.dataset.mode = viewer ? 'avatar' : !signedIn && authConfig ? 'sign-in' : 'key'
+  accountButton.title = label
+  accountButton.setAttribute('aria-label', label)
+  for (const image of [accountAvatar, dialogAvatar]) {
+    if (viewer) image.src = sizedAvatar(viewer.avatarUrl, 88)
+    else image.removeAttribute('src')
+  }
+
+  signedInPanel.hidden = !signedIn
+  signedOutPanel.hidden = signedIn
+  accountName.textContent = viewer ? `Signed in as @${viewer.login}` : 'Access token saved'
+  dialogAvatar.hidden = !viewer
+  myStarsButton.hidden = !viewer
+  myStarsLink.hidden = !viewer
+  if (viewer) myStarsLink.href = formatRoute(viewer.login, EMPTY_FILTER)
+  byId('oauth-option').hidden = !authConfig
+  byId('token-save').classList.toggle('ghost', authConfig !== null)
+}
+
+function openAccountDialog(): void {
+  tokenInput.value = ''
   tokenDialog.returnValue = ''
+  renderAccount()
   tokenDialog.showModal()
 }
 
-function applyTokenChange(): void {
-  if (tokenDialog.returnValue === 'save') saveToken(tokenInput.value.trim() || null)
-  else if (tokenDialog.returnValue === 'remove') saveToken(null)
-  else return
+function applyAccountChange(): void {
+  const action = tokenDialog.returnValue
+  if (action === 'save') {
+    const token = tokenInput.value.trim()
+    if (!token) return
+    saveToken(token)
+    void refreshViewer()
+  } else if (action === 'sign-out') {
+    saveToken(null)
+    saveViewer(null)
+    viewer = null
+  } else {
+    return
+  }
+  renderAccount()
   const needsReload = document.body.dataset.view === 'error' || result?.partial === true
   if (currentUser && needsReload) void loadUser(currentUser, true)
+}
+
+async function refreshViewer(): Promise<void> {
+  const token = loadToken()
+  const fetched = token ? await fetchViewer(token) : null
+  if (loadToken() !== token) return
+  viewer = fetched
+  saveViewer(viewer)
+  renderAccount()
+}
+
+function redirectUri(): string {
+  return location.origin + location.pathname
+}
+
+async function beginSignIn(): Promise<void> {
+  if (!authConfig) return
+  const state = randomToken()
+  const verifier = randomToken()
+  try {
+    savePending({ state, verifier, returnHash: location.hash })
+  } catch {
+    tokenDialog.close('cancel')
+    showToast('Sign-in needs session storage, which this browser is blocking.')
+    return
+  }
+  location.assign(buildAuthorizeUrl(authConfig, redirectUri(), state, await codeChallenge(verifier)))
+}
+
+async function completeSignIn(): Promise<void> {
+  const callback = parseCallback(location.search)
+  if (!callback) return
+  const pending = takePending()
+  history.replaceState(null, '', location.pathname + (pending?.returnHash || '#/'))
+
+  if (callback.kind === 'denied') {
+    showToast('Sign-in cancelled.')
+    return
+  }
+  if (!authConfig || !pending || pending.state !== callback.state) {
+    showToast('Sign-in could not be verified. Try again.')
+    return
+  }
+
+  loadingTitle.textContent = 'Signing in with GitHub'
+  loadingDetail.textContent = 'Exchanging the sign-in code…'
+  progressFill.style.scale = '0 1'
+  setView('loading')
+  try {
+    const token = await exchangeCode(authConfig, {
+      code: callback.code,
+      verifier: pending.verifier,
+      redirectUri: redirectUri(),
+    })
+    saveToken(token)
+    viewer = await fetchViewer(token)
+    saveViewer(viewer)
+    renderAccount()
+    forceNextLoad = true
+    if (viewer && !parseRoute(location.hash).user) {
+      history.replaceState(null, '', formatRoute(viewer.login, EMPTY_FILTER))
+    }
+    showToast(viewer ? `Signed in as @${viewer.login}` : 'Signed in')
+  } catch (error) {
+    showToast(error instanceof SignInError ? error.message : 'Sign-in failed. Try again.')
+  }
+}
+
+function showToast(message: string): void {
+  clearTimeout(toastTimer)
+  toast.textContent = message
+  toast.hidden = false
+  toastTimer = window.setTimeout(() => {
+    toast.hidden = true
+  }, TOAST_DURATION_MS)
 }
 
 function formatNumber(value: number): string {
@@ -428,18 +579,26 @@ avatar.addEventListener('error', () => {
 byId('refresh-button').addEventListener('click', reloadCurrentUser)
 byId('retry-button').addEventListener('click', reloadCurrentUser)
 byId('panel-close').addEventListener('click', () => navigate(currentUser))
-byId('token-button').addEventListener('click', openTokenDialog)
-byId('notice-token-button').addEventListener('click', openTokenDialog)
-errorTokenButton.addEventListener('click', openTokenDialog)
+accountButton.addEventListener('click', openAccountDialog)
+noticeTokenButton.addEventListener('click', openAccountDialog)
+errorTokenButton.addEventListener('click', openAccountDialog)
 byId('token-cancel').addEventListener('click', () => tokenDialog.close('cancel'))
-byId('token-remove').addEventListener('click', () => tokenDialog.close('remove'))
-tokenDialog.addEventListener('close', applyTokenChange)
+byId('sign-out-button').addEventListener('click', () => tokenDialog.close('sign-out'))
+byId('sign-in-button').addEventListener('click', () => void beginSignIn())
+myStarsButton.addEventListener('click', () => {
+  tokenDialog.close('cancel')
+  if (viewer) navigate(viewer.login)
+})
+tokenDialog.addEventListener('close', applyAccountChange)
 window.addEventListener('popstate', applyRoute)
 window.addEventListener('hashchange', applyRoute)
 
 startStarfield(byId<HTMLCanvasElement>('starfield'))
+renderAccount()
 await Promise.race([
   document.fonts.load(`700 100px ${CLOUD_FONT}`),
   new Promise((resolve) => setTimeout(resolve, FONT_TIMEOUT_MS)),
 ])
+await completeSignIn()
+if (loadToken() !== null && !viewer) void refreshViewer()
 applyRoute()

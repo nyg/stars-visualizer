@@ -14,3 +14,7 @@ export function create<K extends keyof HTMLElementTagNameMap>(
   if (text) element.textContent = text
   return element
 }
+
+export function sizedAvatar(url: string, size: number): string {
+  return `${url}${url.includes('?') ? '&' : '?'}s=${size}`
+}

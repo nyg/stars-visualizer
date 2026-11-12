@@ -51,12 +51,15 @@
         </button>
       </form>
 
-      <button class="icon-button" id="token-button" type="button" aria-label="GitHub token settings" title="GitHub token">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
+      <button class="account-button" id="token-button" type="button" data-mode="key" aria-label="GitHub access">
+        <img id="account-avatar" alt="" width="38" height="38" />
+        <svg class="icon-key" viewBox="0 0 24 24" aria-hidden="true">
           <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
           <path d="m21 2-9.6 9.6" />
           <circle cx="7.5" cy="15.5" r="5.5" />
         </svg>
+        <svg class="icon-github" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" /></svg>
+        <span>Sign in</span>
       </button>
     </header>
 
@@ -109,6 +112,7 @@
 
         <p class="examples">
           Or try
+          <a id="my-stars-link" hidden>my stars</a>
           <a href="#/addyosmani">addyosmani</a>
           <a href="#/gaearon">gaearon</a>
           <a href="#/mitchellh">mitchellh</a>
@@ -204,25 +208,56 @@
       </section>
     </main>
 
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
     <dialog class="dialog" id="token-dialog" aria-labelledby="token-title">
-      <form method="dialog" id="token-form">
-        <h2 id="token-title">GitHub token</h2>
-        <p>
-          Without a token, GitHub allows 60 requests per hour, enough for about 6,000 stars. A
-          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">personal access token</a>
-          with no permissions raises that to 5,000 requests.
-        </p>
-        <p>The token stays in this browser and is only ever sent to api.github.com.</p>
-        <label class="field">
-          <span>Personal access token</span>
-          <input id="token-input" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false" />
-        </label>
-        <div class="actions">
-          <button class="button ghost" id="token-remove" type="button">Remove</button>
-          <button class="button ghost" id="token-cancel" type="button">Cancel</button>
-          <button class="button" type="submit" value="save">Save</button>
+      <button class="icon-button dialog-close" id="token-cancel" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+      <h2 id="token-title">GitHub access</h2>
+      <p>
+        Anonymous visitors get 60 GitHub requests per hour per IP address, enough for about 6,000 stars. Signing in
+        raises that to 5,000 requests per hour.
+      </p>
+
+      <section id="signed-in-panel" hidden>
+        <div class="account-card">
+          <img id="dialog-avatar" alt="" width="44" height="44" hidden />
+          <div>
+            <strong id="account-name"></strong>
+            <span>The access token is kept in this browser only.</span>
+          </div>
         </div>
-      </form>
+        <div class="actions">
+          <button class="button ghost" id="sign-out-button" type="button">Sign out</button>
+          <button class="button" id="my-stars-button" type="button">Show my stars</button>
+        </div>
+      </section>
+
+      <section id="signed-out-panel">
+        <div id="oauth-option" hidden>
+          <button class="button github" id="sign-in-button" type="button" autofocus>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" /></svg>
+            Sign in with GitHub
+          </button>
+          <p class="fine-print">Asks for no permissions. The site can only read what is already public.</p>
+          <p class="divider">or paste a personal access token</p>
+        </div>
+        <form method="dialog" id="token-form">
+          <label class="field">
+            <span>Personal access token</span>
+            <input id="token-input" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false" />
+          </label>
+          <p class="fine-print">
+            A
+            <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">fine-grained token</a>
+            with no permissions is enough. It stays in this browser and is only sent to api.github.com.
+          </p>
+          <div class="actions">
+            <button class="button" id="token-save" type="submit" value="save">Save token</button>
+          </div>
+        </form>
+      </section>
     </dialog>
 
     <script type="module" src="/src/main.ts"></script>
