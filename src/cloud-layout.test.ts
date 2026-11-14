@@ -68,7 +68,72 @@ describe('layoutCloud', () => {
 
     // Then
     const sizes = placed.map((word) => word.fontSize)
-    expect(Math.min(...sizes) / Math.max(...sizes)).toBeGreaterThanOrEqual(0.6)
+    expect(Math.min(...sizes) / Math.max(...sizes)).toBeGreaterThanOrEqual(0.9)
+  })
+
+  it('sizes fonts by the square root of the weight', () => {
+    // Given
+    const spread = [
+      { key: 'heavy', label: 'heavy', weight: 16 },
+      { key: 'medium', label: 'medium', weight: 4 },
+      { key: 'light', label: 'light', weight: 1 },
+    ]
+
+    // When
+    const placed = layoutCloud(spread, { width: 1000, height: 600, measure })
+
+    // Then
+    const [heavy, medium, light] = placed.map((word) => word.fontSize)
+    expect((medium ?? 0) / (heavy ?? 1)).toBeCloseTo(0.5, 2)
+    expect((light ?? 0) / (heavy ?? 1)).toBeCloseTo(0.25, 2)
+  })
+
+  it('keeps the size ratio of two words when lighter words join them', () => {
+    // Given
+    const pair = [
+      { key: 'heavy', label: 'heavy', weight: 9 },
+      { key: 'medium', label: 'medium', weight: 4 },
+    ]
+    const options = { width: 1000, height: 600, measure }
+
+    // When
+    const alone = layoutCloud(pair, options)
+    const joined = layoutCloud([...pair, { key: 'light', label: 'light', weight: 1 }], options)
+
+    // Then
+    const ratio = (placed: PlacedWord[]) => (placed[1]?.fontSize ?? 0) / (placed[0]?.fontSize ?? 1)
+    expect(ratio(joined)).toBeCloseTo(ratio(alone), 2)
+  })
+
+  it('keeps the lightest word readable next to a far heavier one', () => {
+    // Given
+    const lopsided = [
+      { key: 'heavy', label: 'heavy', weight: 1000 },
+      { key: 'light', label: 'light', weight: 1 },
+    ]
+
+    // When
+    const placed = layoutCloud(lopsided, { width: 1000, height: 600, measure })
+
+    // Then
+    const [heavy, light] = placed.map((word) => word.fontSize)
+    expect((light ?? 0) / (heavy ?? 1)).toBeCloseTo(0.15, 2)
+  })
+
+  it('places many near-equal words without overlap', () => {
+    // Given
+    const nearEqual = words(160).map((word, index) => ({ ...word, weight: 12 - (index % 3) }))
+
+    // When
+    const placed = layoutCloud(nearEqual, { width: 1400, height: 800, measure })
+
+    // Then
+    expect(placed).toHaveLength(160)
+    for (const [index, word] of placed.entries()) {
+      for (const other of placed.slice(index + 1)) {
+        expect(overlaps(word, other), `${word.key} overlaps ${other.key}`).toBe(false)
+      }
+    }
   })
 
   it('gives equally weighted words the same font size', () => {
