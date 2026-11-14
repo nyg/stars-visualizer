@@ -31,9 +31,9 @@ interface Box {
 }
 
 const REFERENCE_MAX = 100
-const REFERENCE_UNIFORM = 40
+// Many near-equal words at full size outrun MAX_SPIRAL_STEPS and end up overlapping.
+const REFERENCE_RMS_LIMIT = 40
 const SMALLEST_FLOOR_RATIO = 0.15
-const LARGEST_FLOOR_RATIO = 0.6
 const LINE_HEIGHT = 0.92
 const MARGIN = 10
 const WIDTH_FILL = 0.9
@@ -63,12 +63,10 @@ export function layoutCloud(words: CloudWord[], options: LayoutOptions): PlacedW
 function referenceSizes(sorted: CloudWord[]): number[] {
   const weights = sorted.map((word) => Math.max(word.weight, 0))
   const max = Math.max(...weights)
-  const min = Math.min(...weights)
-  if (max === min) return sorted.map(() => REFERENCE_UNIFORM)
-  const smallest = REFERENCE_MAX * Math.min(LARGEST_FLOOR_RATIO, Math.max(SMALLEST_FLOOR_RATIO, min / max))
-  const rootMin = Math.sqrt(min)
-  const rootSpan = Math.sqrt(max) - rootMin
-  return weights.map((weight) => smallest + ((Math.sqrt(weight) - rootMin) / rootSpan) * (REFERENCE_MAX - smallest))
+  const ratios = weights.map((weight) => (max === 0 ? 1 : Math.max(SMALLEST_FLOOR_RATIO, Math.sqrt(weight / max))))
+  const rootMeanSquare = Math.sqrt(ratios.reduce((sum, ratio) => sum + ratio * ratio, 0) / ratios.length)
+  const largest = Math.min(REFERENCE_MAX, REFERENCE_RMS_LIMIT / rootMeanSquare)
+  return ratios.map((ratio) => ratio * largest)
 }
 
 function placeOnSpiral(sorted: CloudWord[], options: LayoutOptions, minFontSize: number): Box[] {
