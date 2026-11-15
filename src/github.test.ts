@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { type FetchProgress,fetchStars, GitHubError, isValidUsername, parseLastPage, toStarredRepo } from './github'
+import { type FetchProgress, fetchStars, GitHubError, isValidUsername, parseLastPage, toStarredRepo } from './github'
 
 function rawRepo(fullName: string) {
    const [owner = '', name = ''] = fullName.split('/')
