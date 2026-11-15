@@ -17,6 +17,7 @@ import { loadCached, loadToken, loadViewer, saveCached, saveToken, saveViewer } 
 import { CLOUD_FONT, CloudView } from './cloud-view'
 import { byId, create, sizedAvatar } from './dom'
 import { fetchStars, GitHubError, isValidUsername, type FetchProgress, type StarsResult } from './github'
+import { countPageView } from './hits'
 import { LanguageBar } from './language-bar'
 import { languageColor } from './language-colors'
 import {
@@ -53,6 +54,8 @@ const narrowLayout = matchMedia('(max-width: 959px)')
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
 const clockTime = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
 const authConfig = readAuthConfig(import.meta.env)
+
+countPageView(import.meta.env)
 
 const loadingTitle = byId('loading-title')
 const loadingDetail = byId('loading-detail')
