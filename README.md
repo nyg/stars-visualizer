@@ -15,19 +15,19 @@ Turns the repositories a GitHub user has starred into an animated cloud of topic
 ## Development
 
 ```bash
-npm install
+pnpm install
 ```
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ```bash
-npm test
+pnpm test
 ```
 
 ```bash
-npm run build
+pnpm build
 ```
 
 ## Deploying to GitHub Pages
