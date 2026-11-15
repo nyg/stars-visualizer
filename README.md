@@ -77,3 +77,35 @@ Add two repository variables under **Settings → Secrets and variables → Acti
 | `TOKEN_EXCHANGE_URL` | `https://<project>.vercel.app/api/token` |
 
 For a local build, copy `.env.example` to `.env.local` and fill in the same two values. Sign-in only completes on an address that is both registered as a redirect URI in step 1 and allowed by the function's `ALLOWED_ORIGIN`.
+
+## Page views
+
+Counting page views is optional. Without the build setting below the site counts nothing.
+
+Views go to [GoatCounter](https://www.goatcounter.com) through the small Cloudflare Worker in `worker/`, so that blockers listing GoatCounter's domains don't drop them. On load the site sends the Worker the page path without its query string, the page title, the referrer and the screen size. The Worker adds the visitor's IP address, user agent and language, and forwards the hit to GoatCounter's API. No cookie is set.
+
+### 1. Deploy the Worker
+
+Set `ALLOWED_ORIGIN` and `GOATCOUNTER_URL` in `worker/wrangler.jsonc` to the origin of the site and to the address of the GoatCounter site, then:
+
+```bash
+cd worker
+pnpm install
+
+# a GoatCounter API token allowed to record pageviews, never committed (use worker/.dev.vars for local runs)
+pnpm wrangler secret put GOATCOUNTER_TOKEN
+
+pnpm run deploy
+```
+
+The Worker answers at `https://<name>.<account>.workers.dev/hit` and only to `POST` requests coming from `ALLOWED_ORIGIN`.
+
+### 2. Point the site at it
+
+Add one repository variable under **Settings → Secrets and variables → Actions → Variables**, then run the deploy workflow again:
+
+| Name | Value |
+| --- | --- |
+| `HIT_URL` | `https://<name>.<account>.workers.dev/hit` |
+
+For a local build, set `VITE_HIT_URL` in `.env.local`.
